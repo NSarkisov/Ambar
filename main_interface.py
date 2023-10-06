@@ -13,6 +13,7 @@ import dialog_table
 from dialog_table import Ui_Dialog
 from functools import partial
 
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -68,14 +69,14 @@ class Ui_MainWindow(object):
         ui_table = Ui_Dialog()
         with dialog_table.con:
             header = dialog_table.con.execute(f'PRAGMA table_info({table_name})').fetchall()
-            column_names = [column[1] for column in header if column[1] != 'id']
+            column_names = [column[1] for column in header]   
             column = ', '.join(column_names)
-            print(column)
+           
             inf = dialog_table.con.execute(f'SELECT {column} FROM {table_name}').fetchall()
-             
+            
         ui_table.TABLE = [tuple(column_names)] + inf
         ui_table.table_name = table_name
-        ui_table.column_names =  column_names 
+        ui_table.column_names =  column 
         ui_table.setupUi(Dialog)
     
         Dialog.show()

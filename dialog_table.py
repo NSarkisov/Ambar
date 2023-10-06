@@ -70,7 +70,7 @@ class Ui_Dialog(object):
         self.pushButton_4.setText(_translate("Dialog", "Применить"))
         
         self.pushButton0.clicked.connect(partial(self.plus))
-        self.pushButton_1.clicked.connect(partial(self.change, self.table_name))
+        self.pushButton_1.clicked.connect(partial(self.change, self.table_name, self.column_names))
         self.pushButton.clicked.connect(partial(self.delete, self.table_name))
         self.pushButton_2.clicked.connect(partial(self.add, self.table_name, self.column_names))
         self.pushButton_3.clicked.connect(partial(self.cancel))
@@ -90,98 +90,84 @@ class Ui_Dialog(object):
             cell = QtWidgets.QTableWidgetItem(value.strip())
             table.setItem(rowCount, column, cell)
     
+    def is_data(self, table):     #забираю информацию из выделенного диапазона
+        selected_ranges = table.selectedRanges() 
+        data = []
+        for selected_range in selected_ranges:
+            top_row = selected_range.topRow()
+            bottom_row = selected_range.bottomRow()
+            left_column = selected_range.leftColumn()
+            right_column = selected_range.rightColumn()    
+        for row in range(top_row, bottom_row + 1):
+            row_data = []
+            for column in range(left_column, right_column + 1):
+                item = table.item(row, column)
+                if item is not None:
+                    row_data.append(item.text())
+                else:
+                    row_data.append('')
+            data.append(row_data)
+        return data
+    
     def change(self, table_name, column_names):
-        try:
-            #создаю запрос для записи в бд   
-            selected_ranges = self.tableWidget.selectedRanges() 
-            table = self.tableWidget 
-            data = []
-            for selected_range in selected_ranges:
-                top_row = selected_range.topRow()
-                bottom_row = selected_range.bottomRow()
-                left_column = selected_range.leftColumn()
-                right_column = selected_range.rightColumn()
-                
-            for row in range(top_row, bottom_row + 1):
-                row_data = []
-                for column in range(left_column, right_column + 1):
-                    item = table.item(row, column)
-                    if item is not None:
-                        row_data.append(item.text())
-                    else:
-                        row_data.append('')
-                data.append(row_data)
-            
-            column = ', '.join(column_names)    #названия столбцов, кот необх добавить в запрос для внесения изменений в бд
-            print(column)
+        table = self.tableWidget 
+        selected_model = table.selectionModel()
+        selected_line = selected_model.selectedRows()
+        if selected_line:
+            data = self.is_data(table)
+            column = column_names    
             for i in data:
                 #repr() возвращает строковое представление объекта, включая кавычки, если это строка, чтоб ? в запросе передавался в ""
                 val = ', '.join((repr(value) for value in i))
-       
-                self.querys.append(f'UPDATE {table_name} SET ({column}) = ({val})')    
+                self.querys.append(f'UPDATE {table_name} SET ({column}) = ({val}) WHERE id = {i[0]}')    
             self.pushButton_3.setEnabled(True)
             self.pushButton_4.setEnabled(True)   
-        except:
-             # Если нет выделенных диапазонов, выводим сообщение пользователю
-           QMessageBox.information(self.tableWidget , 'Внимание!', 'Пожалуйста, выделите данные.')  
-            
-    def add(self, table_name, column_names):     
-        try:
-        #создаю запрос для записи в бд   
-            selected_ranges = self.tableWidget.selectedRanges() 
-            table = self.tableWidget 
-            data = []
-            for selected_range in selected_ranges:
-                top_row = selected_range.topRow()
-                bottom_row = selected_range.bottomRow()
-                left_column = selected_range.leftColumn()
-                right_column = selected_range.rightColumn()
-                
-            for row in range(top_row, bottom_row + 1):
-                row_data = []
-                for column in range(left_column, right_column + 1):
-                    item = table.item(row, column)
-                    if item is not None:
-                        row_data.append(item.text())
-                    else:
-                        row_data.append('')
-                data.append(row_data)
-            
-            column = ', '.join(column_names)    #названия столбцов, кот необх добавить в запрос для внесения изменений в бд
+        else:
+            # Если нет выделенных диапазонов, выводим сообщение пользователю
+            QMessageBox.information(table, 'Внимание!', 'Пожалуйста, выделите строку.')
+           
+    def add(self, table_name, column_names):   
+        table = self.tableWidget 
+        selected_model = table.selectionModel()
+        selected_line = selected_model.selectedRows()
+        if selected_line:
+            data = self.is_data(table)
+            column_names = column_names.split(',')
+            column = [i for i in column_names if i !='id']     #названия столбцов, кот необх добавить в запрос для внесения изменений в бд  
+            column = ', '.join(column)
             print(column)
-            for i in data:
-                print(data)
-                #repr() возвращает строковое представление объекта, включая кавычки, если это строка, чтоб ? в запросе передавался в ""
-                val = ', '.join((repr(value) for value in i))
-                print(val)
+            print(data)
+            for sublist in data:
+                for i in sublist[1:]:
+                    #repr() возвращает строковое представление объекта, включая кавычки, если это строка, чтоб ? в запросе передавался в ""
+                    val = ', '.join((repr(value) for value in sublist[1:]))
                 self.querys.append(f'INSERT INTO {table_name} ({column}) VALUES ({val})')    
             self.pushButton_3.setEnabled(True)
-            self.pushButton_4.setEnabled(True)
-        except:
+            self.pushButton_4.setEnabled(True)    
+        else:
             # Если нет выделенных диапазонов, выводим сообщение пользователю
-           QMessageBox.information(table, 'Внимание!', 'Пожалуйста, выделите данные.')      
-        
+            QMessageBox.information(table, 'Внимание!', 'Пожалуйста, выделите строку.')
+            
     def delete(self, table_name):
-        try:
+        table = self.tableWidget 
+        selected_model = table.selectionModel()
+        selected_line = selected_model.selectedRows()
+        if selected_line:
             #возвращает список объектов QTableWidgetSelectionRange, представляющих выбранные диапазоны строк и столбцов в таблице.
-            selected_ranges = self.tableWidget.selectedRanges()  
-            table = self.tableWidget  
+            selected_ranges = table.selectedRanges()  
             selected_rows = []
             for selected_range in selected_ranges:
                 top_row = selected_range.topRow()
                 bottom_row = selected_range.bottomRow()
-
             for row in range(top_row, bottom_row + 1):
                 selected_rows.append(row)
-            
             for id in selected_rows:
                 self.querys.append(f'DELETE FROM {table_name} WHERE id = {id}')    
             # Активировать кнопки "Применить" и "Отменить"
             self.pushButton_3.setEnabled(True)
             self.pushButton_4.setEnabled(True)
-        except:
-            # Если нет выделенных диапазонов, выводим сообщение пользователю
-           QMessageBox.information(table, 'Внимание!', 'Пожалуйста, выделите данные.')     
+        else:
+           QMessageBox.information(table, 'Внимание!', 'Пожалуйста, выделите строку.')     
             
     def apply(self):
         for query in self.querys:
@@ -221,7 +207,7 @@ class Ui_Dialog(object):
             for col, value in enumerate(data):
                 item = QtWidgets.QTableWidgetItem(str(value))
                 self.tableWidget.setItem(row, col, item)   
-            
+        self.tableWidget.setColumnHidden(0, True)    #скрытый столбец id от пользователя
          # Растягивание всех столбцов
         self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tableWidget.horizontalHeader().setVisible(False)
