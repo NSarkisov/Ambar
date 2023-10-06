@@ -75,6 +75,29 @@ class Ui_Dialog(object):
         self.pushButton_2.clicked.connect(partial(self.add, self.table_name, self.column_names))
         self.pushButton_3.clicked.connect(partial(self.cancel))
         self.pushButton_4.clicked.connect(partial(self.apply)) 
+        
+    def show_table(self, TB):        
+        self.tableWidget.setRowCount(len(TB))
+        self.tableWidget.setColumnCount(len(TB[0]))
+        # Заполнение таблицы данными
+        for row, data in enumerate(TB):
+            for col, value in enumerate(data):
+                item = QtWidgets.QTableWidgetItem(str(value))
+                self.tableWidget.setItem(row, col, item)   
+        self.tableWidget.setColumnHidden(0, True)    #скрытый столбец id от пользователя
+         # Растягивание всех столбцов
+        self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tableWidget.horizontalHeader().setVisible(False)
+        #handle_cell_clicked, который вызывается при клике на ячейку таблицы. Обработчик получает индексы нажатой ячейки и затем использует метод setSelected(True) для каждой ячейки в столбце, чтобы выделить весь столбец.
+        self.tableWidget.cellClicked.connect(partial(self.handle_cell_clicked))   
+        
+    def handle_cell_clicked(self, row, column):
+        if row == 0:
+        # Выделение всего столбца
+            for row in range(self.tableWidget.rowCount()):
+                item = self.tableWidget.item(row, column)
+                if item:
+                    item.setSelected(True)
     
     def plus(self):
         inputText = self.textEdit.toPlainText()
@@ -191,28 +214,9 @@ class Ui_Dialog(object):
         self.pushButton_3.setEnabled(False)
         self.pushButton_4.setEnabled(False)
     
-    def handle_cell_clicked(self, row, column):
-        if row == 0:
-        # Выделение всего столбца
-            for row in range(self.tableWidget.rowCount()):
-                item = self.tableWidget.item(row, column)
-                if item:
-                    item.setSelected(True)
+   
        
-    def show_table(self, TB):        
-        self.tableWidget.setRowCount(len(TB))
-        self.tableWidget.setColumnCount(len(TB[0]))
-        # Заполнение таблицы данными
-        for row, data in enumerate(TB):
-            for col, value in enumerate(data):
-                item = QtWidgets.QTableWidgetItem(str(value))
-                self.tableWidget.setItem(row, col, item)   
-        self.tableWidget.setColumnHidden(0, True)    #скрытый столбец id от пользователя
-         # Растягивание всех столбцов
-        self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.tableWidget.horizontalHeader().setVisible(False)
-        #handle_cell_clicked, который вызывается при клике на ячейку таблицы. Обработчик получает индексы нажатой ячейки и затем использует метод setSelected(True) для каждой ячейки в столбце, чтобы выделить весь столбец.
-        self.tableWidget.cellClicked.connect(partial(self.handle_cell_clicked))        
+       
         
 
 
