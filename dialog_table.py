@@ -10,7 +10,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import  QMessageBox, QHeaderView
+from PyQt5.QtWidgets import  QMessageBox, QHeaderView, QVBoxLayout
 from functools import partial
 import sqlite3 as sl
 from PyQt5.QtGui import QPixmap, QIcon, QImage 
@@ -27,6 +27,7 @@ class Ui_Dialog(object):
     table_name = ""
     column_names = "" 
     querys = []
+    image_viewer = None
     
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
@@ -84,19 +85,14 @@ class Ui_Dialog(object):
         self.tableWidget.setColumnCount(len(TB[0]))
         # Заполнение таблицы данными
         for row, data in enumerate(TB):
-            print(f'row = {row}')
-            #print(f'data = {data}') 
             for col, value in enumerate(data):
-                print(f'val = {value}')  
                 if isinstance(value, io.BytesIO):
-                    image_bytes = value.read()
-                    q_image = QImage(image_bytes, 600, 600, QImage.Format_RGBA8888)
-                    item = QtWidgets.QTableWidgetItem()
-                    item.setData(Qt.DecorationRole, QPixmap.fromImage(q_image))
+                    item = QtWidgets.QTableWidgetItem("Картинка")
+                    item.setData(Qt.UserRole, value)  # Сохраняем байты изображения в пользовательском роле
+                    item.setTextAlignment(Qt.AlignCenter)
+                    item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 else:
                     item = QtWidgets.QTableWidgetItem(str(value))
-                
-                   
                 self.tableWidget.setItem(row, col, item)   
         self.tableWidget.setColumnHidden(0, True)    #скрытый столбец id от пользователя
          # Растягивание всех столбцов
@@ -104,10 +100,27 @@ class Ui_Dialog(object):
         self.tableWidget.horizontalHeader().setVisible(False)
         #handle_cell_clicked, который вызывается при клике на ячейку таблицы. Обработчик получает индексы нажатой ячейки и затем использует метод setSelected(True) для каждой ячейки в столбце, чтобы выделить весь столбец.
         self.tableWidget.cellClicked.connect(partial(self.handle_cell_clicked))   
-        
+    
+             
     def handle_cell_clicked(self, row, column):
+        item = self.tableWidget.item(row, column)
+        if item and isinstance(item.data(Qt.UserRole), io.BytesIO):
+            image_bytes = item.data(Qt.UserRole).read()
+            image = QtGui.QImage.fromData(image_bytes)
+            if image.isNull():
+                return
+            image = image.scaled(400, 300, QtCore.Qt.KeepAspectRatio)
+            image_dialog = QtWidgets.QDialog()
+            image_dialog.setWindowTitle("Изображение")
+            label = QtWidgets.QLabel(image_dialog)
+            label.setPixmap(QtGui.QPixmap.fromImage(image))
+            label.setScaledContents(True)
+            layout = QtWidgets.QVBoxLayout(image_dialog)
+            layout.addWidget(label)
+            image_dialog.exec_()
+            
+         # Выделение всего столбца    
         if row == 0:
-        # Выделение всего столбца
             for row in range(self.tableWidget.rowCount()):
                 item = self.tableWidget.item(row, column)
                 if item:
