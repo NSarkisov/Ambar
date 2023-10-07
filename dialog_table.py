@@ -9,9 +9,14 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import  QMessageBox, QHeaderView
 from functools import partial
 import sqlite3 as sl
+from PyQt5.QtGui import QPixmap, QIcon, QImage 
+from io import BytesIO
+from PIL import Image
+import io
 
 con = sl.connect('Manager.db')
 
@@ -52,8 +57,6 @@ class Ui_Dialog(object):
         self.textEdit = QtWidgets.QTextEdit(Dialog)
         self.textEdit.setGeometry(QtCore.QRect(30, 440, 401, 81))
         self.textEdit.setObjectName("textEdit")
-        # print(self.TABLE)        
-        # print(self.table_name)
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
         
@@ -81,8 +84,19 @@ class Ui_Dialog(object):
         self.tableWidget.setColumnCount(len(TB[0]))
         # Заполнение таблицы данными
         for row, data in enumerate(TB):
+            print(f'row = {row}')
+            #print(f'data = {data}') 
             for col, value in enumerate(data):
-                item = QtWidgets.QTableWidgetItem(str(value))
+                print(f'val = {value}')  
+                if isinstance(value, io.BytesIO):
+                    image_bytes = value.read()
+                    q_image = QImage(image_bytes, 600, 600, QImage.Format_RGBA8888)
+                    item = QtWidgets.QTableWidgetItem()
+                    item.setData(Qt.DecorationRole, QPixmap.fromImage(q_image))
+                else:
+                    item = QtWidgets.QTableWidgetItem(str(value))
+                
+                   
                 self.tableWidget.setItem(row, col, item)   
         self.tableWidget.setColumnHidden(0, True)    #скрытый столбец id от пользователя
          # Растягивание всех столбцов
@@ -114,6 +128,7 @@ class Ui_Dialog(object):
             table.setItem(rowCount, column, cell)
     
     def is_data(self, table):     #забираю информацию из выделенного диапазона
+        #возвращает список объектов QTableWidgetSelectionRange, представляющих выбранные диапазоны строк и столбцов в таблице.
         selected_ranges = table.selectedRanges() 
         data = []
         for selected_range in selected_ranges:
@@ -176,16 +191,11 @@ class Ui_Dialog(object):
         selected_model = table.selectionModel()
         selected_line = selected_model.selectedRows()
         if selected_line:
+            data = self.is_data(table)
+            for sublist in data:
+                id = sublist[0]
             #возвращает список объектов QTableWidgetSelectionRange, представляющих выбранные диапазоны строк и столбцов в таблице.
-            selected_ranges = table.selectedRanges()  
-            selected_rows = []
-            for selected_range in selected_ranges:
-                top_row = selected_range.topRow()
-                bottom_row = selected_range.bottomRow()
-            for row in range(top_row, bottom_row + 1):
-                selected_rows.append(row)
-            for id in selected_rows:
-                self.querys.append(f'DELETE FROM {table_name} WHERE id = {id}')    
+            self.querys.append(f'DELETE FROM {table_name} WHERE id = {id}')    
             # Активировать кнопки "Применить" и "Отменить"
             self.pushButton_3.setEnabled(True)
             self.pushButton_4.setEnabled(True)
