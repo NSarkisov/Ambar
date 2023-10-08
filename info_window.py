@@ -8,7 +8,7 @@ from PIL import Image
 import io
 
 class Change_window(object):
-    TABLE = ""
+   
     num = 0
     image = ""
     
@@ -43,11 +43,11 @@ class Change_window(object):
         self.retranslateChange(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
         
-        self.show_info(self.TABLE)
+        self.show_info(self.image)
         
     def retranslateChange(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", self.table_name))
+        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
         self.pushButton0.setText(_translate("Dialog", "+"))
         self.pushButton_1.setText(_translate("Dialog", "Изменить"))
         self.pushButton.setText(_translate("Dialog", "Удалить"))
@@ -55,15 +55,29 @@ class Change_window(object):
         self.pushButton_3.setText(_translate("Dialog", "Отменить"))
         self.pushButton_4.setText(_translate("Dialog", "Применить"))
         
-        self.pushButton0.clicked.connect(partial(self.plus))
-        self.pushButton_1.clicked.connect(partial(self.change, self.table_name, self.column_names))
-        self.pushButton.clicked.connect(partial(self.delete, self.table_name))
-        self.pushButton_2.clicked.connect(partial(self.add, self.table_name, self.column_names))
-        self.pushButton_3.clicked.connect(partial(self.cancel))
-        self.pushButton_4.clicked.connect(partial(self.apply)) 
+        # self.pushButton0.clicked.connect(partial(self.plus))
+        # self.pushButton_1.clicked.connect(partial(self.change, self.table_name, self.column_names))
+        # self.pushButton.clicked.connect(partial(self.delete, self.table_name))
+        # self.pushButton_2.clicked.connect(partial(self.add, self.table_name, self.column_names))
+        # self.pushButton_3.clicked.connect(partial(self.cancel))
+        # self.pushButton_4.clicked.connect(partial(self.apply)) 
         
-    def show_info(self):
-        pass    
+    def show_info(self, image):
+        print(image)
+        image = BytesIO(image)
+        image_bytes = image.read()
+        image = QtGui.QImage.fromData(image_bytes)
+        image = image.scaled(400, 300, QtCore.Qt.KeepAspectRatio)
+        image_dialog = QtWidgets.QDialog()
+        image_dialog.setWindowTitle("Изображение")
+        label = QtWidgets.QLabel(image_dialog)
+        label.setPixmap(QtGui.QPixmap.fromImage(image))
+        label.setScaledContents(True)
+        layout = QtWidgets.QVBoxLayout(image_dialog)
+        layout.addWidget(label)
+        image_dialog.exec_()
+
+          
         
         
 

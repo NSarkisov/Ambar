@@ -61,7 +61,7 @@ class Ui_Dialog(object):
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
         
-        self.show_table(self.TABLE, self.table_name, self.column_names)
+        self.show_table(self.TABLE, self.table_name)
         
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
@@ -80,7 +80,7 @@ class Ui_Dialog(object):
         self.pushButton_3.clicked.connect(partial(self.cancel))
         self.pushButton_4.clicked.connect(partial(self.apply)) 
         
-    def show_table(self, TB, table_name, column_names):        
+    def show_table(self, TB, table_name):        
         self.tableWidget.setRowCount(len(TB))
         self.tableWidget.setColumnCount(len(TB[0]))
         # Заполнение таблицы данными
@@ -108,16 +108,17 @@ class Ui_Dialog(object):
         print(f" название табл {table_name}")
         print(f'id= {id}')
         print(row)
-        print(column[0])
+      
         Dialog = QtWidgets.QDialog()
         change_window = Change_window() 
         with con:
-            image = con.execute(f'SELECT "картинка" FROM {table_name} WHERE id = {id}') 
+            image = con.execute(f'SELECT "картинка" FROM {table_name} WHERE id = {id}').fetchall()[0][0] 
         change_window.image = image
         
         change_window.setupChange(Dialog)
         Dialog.show()
         Dialog.exec_()
+        
         item = self.tableWidget.item(row, column)
         if item and isinstance(item.data(Qt.UserRole), io.BytesIO):
             image_bytes = item.data(Qt.UserRole).read()
