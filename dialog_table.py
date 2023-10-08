@@ -86,7 +86,7 @@ class Ui_Dialog(object):
         # Заполнение таблицы данными
         for row, data in enumerate(TB):
             # print(f'row = {row}')
-            # print(f'data = {data}')
+            print(f'data = {data}')
             for col, value in enumerate(data):
                 if isinstance(value, io.BytesIO):
                     item = QtWidgets.QTableWidgetItem("Картинка")
@@ -101,39 +101,40 @@ class Ui_Dialog(object):
         self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tableWidget.horizontalHeader().setVisible(False)
         #handle_cell_clicked, который вызывается при клике на ячейку таблицы. Обработчик получает индексы нажатой ячейки и затем использует метод setSelected(True) для каждой ячейки в столбце, чтобы выделить весь столбец.
-        self.tableWidget.cellClicked.connect(partial(self.handle_cell_clicked, table_name, data[0]))   
+        self.tableWidget.cellClicked.connect(partial(self.handle_cell_clicked, table_name, data[0], data[1]))   
     
              
-    def handle_cell_clicked(self, table_name, id, row, column):
-        print(f" название табл {table_name}")
-        print(f'id= {id}')
-        print(row)
+    def handle_cell_clicked(self, table_name, id, name_cell, row, column):
+        # print(f" название табл {table_name}")
+        # print(f'id= {id}')
+        # print(row)
       
         Dialog = QtWidgets.QDialog()
         change_window = Change_window() 
         with con:
             image = con.execute(f'SELECT "картинка" FROM {table_name} WHERE id = {id}').fetchall()[0][0] 
         change_window.image = image
+        change_window.name = name_cell
         
         change_window.setupChange(Dialog)
         Dialog.show()
         Dialog.exec_()
         
-        item = self.tableWidget.item(row, column)
-        if item and isinstance(item.data(Qt.UserRole), io.BytesIO):
-            image_bytes = item.data(Qt.UserRole).read()
-            image = QtGui.QImage.fromData(image_bytes)
-            # if image.isNull():
-            #     return
-            image = image.scaled(400, 300, QtCore.Qt.KeepAspectRatio)
-            image_dialog = QtWidgets.QDialog()
-            image_dialog.setWindowTitle("Изображение")
-            label = QtWidgets.QLabel(image_dialog)
-            label.setPixmap(QtGui.QPixmap.fromImage(image))
-            label.setScaledContents(True)
-            layout = QtWidgets.QVBoxLayout(image_dialog)
-            layout.addWidget(label)
-            image_dialog.exec_()
+        # item = self.tableWidget.item(row, column)
+        # if item and isinstance(item.data(Qt.UserRole), io.BytesIO):
+        #     image_bytes = item.data(Qt.UserRole).read()
+        #     image = QtGui.QImage.fromData(image_bytes)
+        #     # if image.isNull():
+        #     #     return
+        #     image = image.scaled(400, 300, QtCore.Qt.KeepAspectRatio)
+        #     image_dialog = QtWidgets.QDialog()
+        #     image_dialog.setWindowTitle("Изображение")
+        #     label = QtWidgets.QLabel(image_dialog)
+        #     label.setPixmap(QtGui.QPixmap.fromImage(image))
+        #     label.setScaledContents(True)
+        #     layout = QtWidgets.QVBoxLayout(image_dialog)
+        #     layout.addWidget(label)
+        #     image_dialog.exec_()
             
          # Выделение всего столбца    
         if row == 0:

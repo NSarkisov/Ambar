@@ -11,14 +11,17 @@ class Change_window(object):
    
     num = 0
     image = ""
-    
+    name = ""
     
     def setupChange(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(774, 559)
-        self.tableWidget = QtWidgets.QTableWidget(Dialog)
-        self.tableWidget.setGeometry(QtCore.QRect(30, 70, 711, 361))
-        self.tableWidget.setObjectName("tableWidget")
+        self.label = QtWidgets.QLabel(Dialog)
+        self.label.setGeometry(QtCore.QRect(30, 70, 711, 361))
+        self.label.setObjectName("label")
+        # self.tableWidget = QtWidgets.QTableWidget(Dialog)
+        # self.tableWidget.setGeometry(QtCore.QRect(30, 70, 711, 361))
+        # self.tableWidget.setObjectName("tableWidget")
         self.pushButton0 = QtWidgets.QPushButton(Dialog)
         self.pushButton0.setGeometry(QtCore.QRect(30, 20, 50, 28))
         self.pushButton0.setObjectName("pushButton0")
@@ -40,6 +43,8 @@ class Change_window(object):
         self.pushButton_4.setGeometry(QtCore.QRect(450, 470, 131, 28))
         self.pushButton_4.setObjectName("pushButton_4")
     
+        
+        
         self.retranslateChange(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
         
@@ -47,7 +52,7 @@ class Change_window(object):
         
     def retranslateChange(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
+        Dialog.setWindowTitle(_translate("Dialog", self.name))
         self.pushButton0.setText(_translate("Dialog", "+"))
         self.pushButton_1.setText(_translate("Dialog", "Изменить"))
         self.pushButton.setText(_translate("Dialog", "Удалить"))
@@ -63,19 +68,19 @@ class Change_window(object):
         # self.pushButton_4.clicked.connect(partial(self.apply)) 
         
     def show_info(self, image):
-        print(image)
+        #print(image)
         image = BytesIO(image)
         image_bytes = image.read()
         image = QtGui.QImage.fromData(image_bytes)
         image = image.scaled(400, 300, QtCore.Qt.KeepAspectRatio)
-        image_dialog = QtWidgets.QDialog()
-        image_dialog.setWindowTitle("Изображение")
-        label = QtWidgets.QLabel(image_dialog)
-        label.setPixmap(QtGui.QPixmap.fromImage(image))
-        label.setScaledContents(True)
-        layout = QtWidgets.QVBoxLayout(image_dialog)
-        layout.addWidget(label)
-        image_dialog.exec_()
+        # image_dialog = QtWidgets.QDialog()
+        # image_dialog.setWindowTitle("Изображение")
+        # label = QtWidgets.QLabel(image_dialog)
+        self.label.setPixmap(QtGui.QPixmap.fromImage(image))
+        self.label.setScaledContents(True)
+        # layout = QtWidgets.QVBoxLayout(image_dialog)
+        # layout.addWidget(label)
+        # image_dialog.exec_()
 
           
         
