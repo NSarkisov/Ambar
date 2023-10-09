@@ -4,14 +4,16 @@ from PyQt5.QtWidgets import  QMessageBox, QHeaderView, QVBoxLayout
 from functools import partial
 from PyQt5.QtGui import QPixmap, QIcon, QImage 
 from io import BytesIO
-from PIL import Image
-import io
+from dialog_table import Ui_Dialog
 
 class Change_window(object):
    
     num = 0
     image = ""
     name = ""
+    table_name = ""
+    
+   
     
     def setupChange(self, Dialog):
         Dialog.setObjectName("Dialog")
@@ -61,28 +63,36 @@ class Change_window(object):
         self.pushButton_4.setText(_translate("Dialog", "Применить"))
         
         # self.pushButton0.clicked.connect(partial(self.plus))
-        # self.pushButton_1.clicked.connect(partial(self.change, self.table_name, self.column_names))
+        self.pushButton_1.clicked.connect(partial(self.open_file_explorer, self.table_name))
         # self.pushButton.clicked.connect(partial(self.delete, self.table_name))
         # self.pushButton_2.clicked.connect(partial(self.add, self.table_name, self.column_names))
         # self.pushButton_3.clicked.connect(partial(self.cancel))
         # self.pushButton_4.clicked.connect(partial(self.apply)) 
         
     def show_info(self, image):
-        #print(image)
         image = BytesIO(image)
         image_bytes = image.read()
         image = QtGui.QImage.fromData(image_bytes)
         image = image.scaled(400, 300, QtCore.Qt.KeepAspectRatio)
-        # image_dialog = QtWidgets.QDialog()
-        # image_dialog.setWindowTitle("Изображение")
-        # label = QtWidgets.QLabel(image_dialog)
         self.label.setPixmap(QtGui.QPixmap.fromImage(image))
         self.label.setScaledContents(True)
-        # layout = QtWidgets.QVBoxLayout(image_dialog)
-        # layout.addWidget(label)
-        # image_dialog.exec_()
-
-          
+       
+    def open_file_explorer(self, table_name):
+       
+        file_dialog = QtWidgets.QFileDialog()
+        file_path = file_dialog.getOpenFileName(self.label, 'Выберите файл', '', 'Все файлы (*.*);;Изображения (*.png *.jpg *.jpeg)')
+        #print(file_path)   #('D:/ITYUIT/Proj2 Warehouses/Ambar/28.jpg', 'All Files (*)')
+        if file_path:
+            with open(file_path[0], 'rb') as file:
+                image_data = file.read()
+            image = QtGui.QImage.fromData(image_data)
+            pixmap = QPixmap(image)
+            self.label.setPixmap(pixmap.scaled(400, 300, Qt.AspectRatioMode.KeepAspectRatio))
+        Ui_Dialog.querys.append(f'INSERT INTO {table_name} ("картинка") VALUES ({BytesIO(image_data)})')
+    
+    
+        #self.pushButton_3.setEnabled(True)
+        #self.pushButton_4.setEnabled(True)        
         
         
 

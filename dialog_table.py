@@ -15,7 +15,6 @@ from functools import partial
 import sqlite3 as sl
 from PyQt5.QtGui import QPixmap, QIcon, QImage 
 from io import BytesIO
-from PIL import Image
 import io
 
 con = sl.connect('Manager.db')
@@ -115,6 +114,7 @@ class Ui_Dialog(object):
             image = con.execute(f'SELECT "картинка" FROM {table_name} WHERE id = {id}').fetchall()[0][0] 
         change_window.image = image
         change_window.name = name_cell
+        change_window.table_name = table_name
         
         change_window.setupChange(Dialog)
         Dialog.show()
