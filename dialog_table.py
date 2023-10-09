@@ -83,9 +83,10 @@ class Ui_Dialog(object):
         self.tableWidget.setRowCount(len(TB))
         self.tableWidget.setColumnCount(len(TB[0]))
         # Заполнение таблицы данными
+        info_dict = {}
         for row, data in enumerate(TB):
-            # print(f'row = {row}')
-            print(f'data = {data}')
+            if row not in info_dict.keys():
+                info_dict[row] = data
             for col, value in enumerate(data):
                 if isinstance(value, io.BytesIO):
                     item = QtWidgets.QTableWidgetItem("Картинка")
@@ -94,31 +95,35 @@ class Ui_Dialog(object):
                     item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 else:
                     item = QtWidgets.QTableWidgetItem(str(value))
-                self.tableWidget.setItem(row, col, item)   
+                self.tableWidget.setItem(row, col, item) 
         self.tableWidget.setColumnHidden(0, True)    #скрытый столбец id от пользователя
          # Растягивание всех столбцов
         self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tableWidget.horizontalHeader().setVisible(False)
         #handle_cell_clicked, который вызывается при клике на ячейку таблицы. Обработчик получает индексы нажатой ячейки и затем использует метод setSelected(True) для каждой ячейки в столбце, чтобы выделить весь столбец.
-        self.tableWidget.cellClicked.connect(partial(self.handle_cell_clicked, table_name, data[0], data[1]))   
+        self.tableWidget.cellClicked.connect(partial(self.handle_cell_clicked, table_name, info_dict))   
     
              
-    def handle_cell_clicked(self, table_name, id, name_cell, row, column):
+    def handle_cell_clicked(self, table_name, info_dict, row, column):
         # print(f" название табл {table_name}")
-        # print(f'id= {id}')
-        # print(row)
-      
-        Dialog = QtWidgets.QDialog()
-        change_window = Change_window() 
-        with con:
-            image = con.execute(f'SELECT "картинка" FROM {table_name} WHERE id = {id}').fetchall()[0][0] 
-        change_window.image = image
-        change_window.name = name_cell
-        change_window.table_name = table_name
-        
-        change_window.setupChange(Dialog)
-        Dialog.show()
-        Dialog.exec_()
+        #print(f'id= {id}')
+        print(f'row = {row}')
+        if column == 4:
+            Dialog = QtWidgets.QDialog()
+            change_window = Change_window() 
+            for el in info_dict:
+                if row == el:
+                    id = info_dict[el][0]
+                    name_cell = info_dict[el][1]
+                    image = con.execute(f'SELECT "картинка" FROM {table_name} WHERE id = {id}').fetchall()[0][0] 
+            change_window.image = BytesIO(image)
+            change_window.name = name_cell
+            change_window.table_name = table_name
+            change_window.id_image = id
+            
+            change_window.setupChange(Dialog)
+            Dialog.show()
+            Dialog.exec_()
         
         # item = self.tableWidget.item(row, column)
         # if item and isinstance(item.data(Qt.UserRole), io.BytesIO):
@@ -187,7 +192,7 @@ class Ui_Dialog(object):
             for i in data:
                 #repr() возвращает строковое представление объекта, включая кавычки, если это строка, чтоб ? в запросе передавался в ""
                 val = ', '.join((repr(value) for value in i))
-                self.querys.append(f'UPDATE {table_name} SET ({column}) = ({val}) WHERE id = {i[0]}')    
+                self.querys.append(f'UPDATE OR IGNORE {table_name} SET ({column}) = ({val}) WHERE id = {i[0]}')    
             self.pushButton_3.setEnabled(True)
             self.pushButton_4.setEnabled(True)   
         else:
