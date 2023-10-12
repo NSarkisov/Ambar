@@ -155,7 +155,6 @@ class Ui_Dialog(object):
             self.label_3.setGeometry(QtCore.QRect(20, 160, 120, 28))
             self.label_3.setObjectName("label_3")
             self.label_3.setText("Доступно")
-            
             self.label_4 = QtWidgets.QLabel(self.Dialog_add_order)
             self.label_4.setGeometry(QtCore.QRect(20, 200, 120, 28))
             self.label_4.setObjectName("label_4")
@@ -171,8 +170,7 @@ class Ui_Dialog(object):
             self.comboBox_1.setObjectName("comboBox_1")  
             self.textEdit = QtWidgets.QTextEdit(self.Dialog_add_order)
             self.textEdit.setGeometry(QtCore.QRect(130, 160, 255, 28))
-            self.textEdit.setObjectName("textEdit")
-                      
+            self.textEdit.setObjectName("textEdit")          
             self.textEdit_1 = QtWidgets.QTextEdit(self.Dialog_add_order)
             self.textEdit_1.setGeometry(QtCore.QRect(130, 120, 255, 28))
             self.textEdit_1.setObjectName("textEdit_1")
@@ -184,9 +182,6 @@ class Ui_Dialog(object):
             self.pushButton_7.setGeometry(QtCore.QRect(230, 250, 131, 28))
             self.pushButton_7.setObjectName("pushButton_1")
             self.pushButton_7.setText("Отмена")
-            
-            # self.model_goods = QSqlQueryModel()
-            # self.comboBox.setModel(self.model_goods)
             self.comboBox.currentIndexChanged.connect(self.updateAmount)
             with con:
                 goods = con.execute(f'SELECT имя_товара FROM Товары').fetchall()
