@@ -77,7 +77,10 @@ class Ui_MainWindow(object):
             if table_name == 'Товары':
                 for i in inf:
                     i[4] = BytesIO(i[4])
-                 
+            elif table_name == 'Заказы':
+                column_names = ('Номер заказа','Клиенты', 'Товары', 'Количество', 'Дата заказа')
+                inf = dialog_table.con.execute(f'SELECT Заказы.id, Клиенты.имя_клиента, Товары.имя_товара, Заказы.количество, Заказы.дата_заказа FROM "Заказы" JOIN "Клиенты" ON Заказы.id_клиента = Клиенты.id JOIN "Товары" ON Заказы.id_товара = Товары.id GROUP BY Клиенты.id, Товары.id').fetchall()
+                inf = [list(x) for x in inf]
         ui_table.TABLE = [column_names] + inf
         ui_table.table_name = table_name
         ui_table.column_names =  column 

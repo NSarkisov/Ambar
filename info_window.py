@@ -2,7 +2,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import  QMessageBox, QHeaderView, QVBoxLayout
 from functools import partial
-from PyQt5.QtGui import QPixmap, QIcon, QImage 
+from PyQt5.QtGui import QPixmap
 from io import BytesIO
 import sqlite3 as sl
 
@@ -66,7 +66,6 @@ class Change_window(object):
         self.label.setScaledContents(True)
        
     def open_file_explorer(self, table_name, id_image):
-        print(f'id-im = {id_image}')
         file_dialog = QtWidgets.QFileDialog()
         file_path = file_dialog.getOpenFileName(self.label, 'Выберите файл', '', 'Все файлы (*.*);;Изображения (*.png *.jpg *.jpeg)')
         #print(file_path)   #('D:/ITYUIT/Proj2 Warehouses/Ambar/28.jpg', 'All Files (*)')
@@ -76,28 +75,32 @@ class Change_window(object):
             image = QtGui.QImage.fromData(image_data)
             pixmap = QPixmap(image)
             self.label.setPixmap(pixmap.scaled(400, 300, Qt.AspectRatioMode.KeepAspectRatio))
+        else:
+            file_dialog.close()
         self.querys.append([f'UPDATE OR IGNORE {table_name} SET картинка = ? WHERE id = {id_image}', BytesIO(image_data)])
     
         self.pushButton_3.setEnabled(True)
         self.pushButton_4.setEnabled(True)        
     
     def delete(self, table_name, id_image):
-        self.querys.append([f'DELETE картинка FROM {table_name} WHERE id = {id_image}'])    
-        # Активировать кнопки "Применить" и "Отменить"
+        self.querys.append([f'UPDATE OR IGNORE {table_name} SET "картинка" = NULL WHERE id = {id_image}'])    
         self.pushButton_3.setEnabled(True)
         self.pushButton_4.setEnabled(True)
     
     def apply(self):
-        
         for query in self.querys:
-            if len(query) > 0:
+            print(query)
+            if len(query) > 1:
                 with con:
                     con.execute(query[0], [sl.Binary(query[1].read())])
             else:
                 with con:
-                    con.execute(query)           
-        self.querys = []    # очищаю список запросов на удаление после нажатия кнопки применить 
-         # Отключить кнопки "Применить" и "Отменить"
+                    con.execute(query[0])           
+        self.querys = []   
+        # Получение родительского окна (диалогового окна) метки
+        dialog = self.label.window()
+        # Закрытие диалогового окна
+        dialog.close()
         self.pushButton_3.setEnabled(False)
         self.pushButton_4.setEnabled(False)
         
