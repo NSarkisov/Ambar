@@ -116,7 +116,7 @@ class Ui_Dialog(object):
                 inf = [list(x) for x in inf]
                 column = ', '.join(column_names)
             elif table_name == 'Добавление заказа':
-                column_names = ['Клиенты', 'Товар', 'Количество', 'Дата заказа']
+                column_names = ['id','Клиенты', 'Товар', 'Количество', 'Дата заказа']
                 column = ', '.join(column_names)
                 inf = []
             else:
@@ -155,8 +155,8 @@ class Ui_Dialog(object):
 
         if table_name == "Заказы":
             self.tableWidget.setColumnHidden(0, False)
-        elif table_name == 'Добавление заказа':
-            self.tableWidget.setColumnHidden(0, False)
+        # elif table_name == 'Добавление заказа':
+        #     self.tableWidget.setColumnHidden(0, False)
         elif table_name == "Товар_на_складе":
             self.tableWidget.setColumnHidden(0, False)
             self.tableWidget.setColumnHidden(1, False)
@@ -297,12 +297,13 @@ class Ui_Dialog(object):
             self.comboBox.currentIndexChanged.connect(self.updateAmount)
             with con:
                 goods = con.execute(f'SELECT имя_товара FROM Товары').fetchall()
-                customers = con.execute(f'SELECT имя_клиента FROM Клиенты').fetchall()
+                customers = con.execute(f'SELECT id, имя_клиента FROM Клиенты').fetchall()
 
                 for good in goods:
                     self.comboBox.addItem(good[0])
                 for customer in customers:
-                    self.comboBox_1.addItem(customer[0])
+                    self.comboBox_1.addItem(f'{customer[0]}. {customer[1]}')
+                    
                 # column_names = con.execute(f'PRAGMA table_info({table_name})').fetchall()
                 # column = [column[1] for column in column_names]
             self.pushButton_6.clicked.connect(partial(self.add_in_table))
@@ -331,15 +332,15 @@ class Ui_Dialog(object):
         if selected_good:
             with con:
                 info_amount = con.execute(f'SELECT количество, продано, перемещено, '
-                                          f'списано FROM "Товар_на_складе" INNER JOIN Товары ON '
-                                          f'Товар_на_складе.id_товара = Товары.id'
-                                          f' WHERE Товары.имя_товара = "{selected_good}"').fetchall()
+                                          f'списано FROM "Товар_на_складе" INNER JOIN "Товары" ON '
+                                          f'Товар_на_складе.id_товара = Товары.id '
+                                          f'WHERE Товары.имя_товара = "{selected_good}"').fetchall()
                 available_products = 0
                 for el in info_amount:
-                    amount = el[0]
-                    sold = el[1]
-                    moved = el[2]
-                    written_off = el[3]
+                    amount = int(el[0])
+                    sold = int(el[1])
+                    moved = int(el[2])
+                    written_off = int(el[3])
                     available = amount - sold - moved - written_off
                     if available > 0:
                         available_products += available
@@ -347,21 +348,23 @@ class Ui_Dialog(object):
         else:
             self.textEdit.clear()
 
-    def add_in_table(self, table_name, column):
-        name = self.comboBox_1.currentText()
+    def add_in_table(self):
+        id_user = self.comboBox_1.currentText()[0]
+        name = self.comboBox_1.currentText()[3:]   #1. Иванов
         good = self.comboBox.currentText()
         amount = self.textEdit_1.toPlainText()
         date = self.dateEdit.date().toString('yyyy-MM-dd')
-        if self.textEdit_1.toPlainText() >= self.textEdit.toPlainText():
+        if int(self.textEdit_1.toPlainText()) > int(self.textEdit.toPlainText()):
             QMessageBox.information(self.Dialog_add_order, 'Внимание!',
                                     'Пожалуйста, введите доступное количество товара.')
         else:
             row = self.tableWidget.rowCount()
             self.tableWidget.insertRow(row)
-            self.tableWidget.setItem(row, 0, QTableWidgetItem(name))
-            self.tableWidget.setItem(row, 1, QTableWidgetItem(good))
-            self.tableWidget.setItem(row, 2, QTableWidgetItem(amount))
-            self.tableWidget.setItem(row, 3, QTableWidgetItem(date))
+            self.tableWidget.setItem(row, 0, QTableWidgetItem(id_user))
+            self.tableWidget.setItem(row, 1, QTableWidgetItem(name))
+            self.tableWidget.setItem(row, 2, QTableWidgetItem(good))
+            self.tableWidget.setItem(row, 3, QTableWidgetItem(amount))
+            self.tableWidget.setItem(row, 4, QTableWidgetItem(date))
             self.Dialog_add_order.window().close()
             self.vertical_header()
 
@@ -429,14 +432,36 @@ class Ui_Dialog(object):
             Dialog = QtWidgets.QDialog()
             self.table_name = "Добавление заказа"
             self.setupUi(Dialog)
-            # order_quantity =
             Dialog.exec_()
+        if table_name == "Добавление заказа":
+            table = self.tableWidget
+            selected_model = table.selectionModel()
+            selected_line = selected_model.selectedRows()
+            data = self.is_data(table)      #[['1', 'Иванов Иван Иванович', 'Вилка столовая ', '10', '2000-01-01']]
+            with con:
+                header = con.execute(f'PRAGMA table_info(Заказы)').fetchall()  
+                column_names = [column[1] for column in header[1:]]
+                column = ', '.join(column_names)
+                print(column)
+            inf = []
+            for el in data:
+                inf.append(el[0])
+                inf.append(el[4])
+                self.querys.append([f'INSERT INTO Заказы ({column}) VALUES (?,?)', inf])
+            self.cancel_button.setEnabled(True)
+            self.apply_button.setEnabled(True)    
+            for inf in data:
+                amount_good = inf[2]
+                print(amount_good)
+    
+           
         else:
             table = self.tableWidget
             selected_model = table.selectionModel()
             selected_line = selected_model.selectedRows()
             if selected_line:
                 data = self.is_data(table)
+                print(data)
                 for sublist in data:
                     # repr() возвращает строковое представление объекта, включая кавычки, если это строка, чтоб ? в
                     # запросе передавался в ""
@@ -499,6 +524,7 @@ class Ui_Dialog(object):
         self.vertical_header()
 
     def apply(self, table_name):
+        print(self.querys)
         for query in self.querys:
             with con:
                 if isinstance(query, list):
