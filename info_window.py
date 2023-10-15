@@ -5,20 +5,28 @@ from functools import partial
 from PyQt5.QtGui import QPixmap, QIcon, QImage
 from io import BytesIO
 import sqlite3 as sl
-from urllib import request
+
 
 con = sl.connect('Manager.db')
 
 
 class Change_window(object):
+
+    image = None
+    table_name = None
+    id_image = None
+    row = None
     num = 0
-    image = ""
-    name = ""
-    table_name = ""
-    id_image = ""
+    name = "Новое изображение"
     querys = []
+    image_dict = {}
 
     def __init__(self):
+        self.pushButton_4 = None
+        self.pushButton_3 = None
+        self.pushButton_2 = None
+        self.pushButton_1 = None
+        self.label = None
         self.accept_deleting = QtWidgets.QDialog()
         self.accept_deleting.resize(350, 150)
         self.accept_deleting.setWindowTitle("Подтвердите действие")
@@ -27,6 +35,7 @@ class Change_window(object):
 
         Dialog.setObjectName("Dialog")
         Dialog.resize(774, 559)
+        Dialog.setWindowTitle("Окно изображения")
 
         self.label = QtWidgets.QLabel(Dialog)
         self.label.setGeometry(QtCore.QRect(30, 70, 711, 361))
@@ -52,11 +61,9 @@ class Change_window(object):
 
         self.retranslateChange(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
-
         self.show_info(self.image)
 
     def retranslateChange(self, Dialog):
-
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", self.name))
         self.pushButton_1.setText(_translate("Dialog", "Изменить"))
@@ -70,10 +77,17 @@ class Change_window(object):
         self.pushButton_4.clicked.connect(partial(self.apply))
 
     def show_info(self, image):
-        image_bytes = image.read()
-        picture = QImage.fromData(image_bytes)
-        picture = picture.scaled(400, 300, Qt.KeepAspectRatio)
-        self.label.setPixmap(QPixmap.fromImage(picture))
+
+        if self.row in self.image_dict.keys():
+            image = self.image_dict[self.row]
+
+        if image is not None:
+            image.seek(0)
+            image_bytes = image.read()
+            picture = QImage.fromData(image_bytes)
+            picture = picture.scaled(400, 300, Qt.KeepAspectRatio)
+            pixmap = QPixmap(picture)
+            self.label.setPixmap(pixmap)
         self.label.setScaledContents(True)
         self.label.setStyleSheet("border: 1px solid black;")
 
@@ -85,15 +99,16 @@ class Change_window(object):
         # print(file_path)   #('D:/ITYUIT/Proj2 Warehouses/Ambar/28.jpg', 'All Files (*)')
         file = file_path[0]
         if file != '':
-            print(file_path)
-            print("открылся проводник")
             with open(file, 'rb') as file:
                 image_data = file.read()
+            if self.row is not None:
+                self.image_dict[self.row] = BytesIO(image_data)
             image = QtGui.QImage.fromData(image_data)
             pixmap = QPixmap(image)
             self.label.setPixmap(pixmap.scaled(400, 300, Qt.AspectRatioMode.KeepAspectRatio))
-            self.querys.append(
-                [f'UPDATE OR IGNORE {table_name} SET картинка = ? WHERE id = {id_image}', BytesIO(image_data)])
+            if id_image is not None:
+                self.querys.append(
+                    [f'UPDATE OR IGNORE {table_name} SET картинка = ? WHERE id = {id_image}', BytesIO(image_data)])
             self.pushButton_3.setEnabled(True)
             self.pushButton_4.setEnabled(True)
 
@@ -125,6 +140,7 @@ class Change_window(object):
             self.accept_deleting.exec_()
 
         elif operation == "yes":
+
             self.querys.append([f'UPDATE OR IGNORE {table_name} SET "картинка" = NULL WHERE id = {id_image}'])
             # Активировать кнопки "Применить" и "Отменить"
             self.label.clear()
@@ -136,13 +152,16 @@ class Change_window(object):
             self.accept_deleting.close()
 
     def apply(self):
+        # print("---------------")
         for query in self.querys:
+            print(query)
             if len(query) > 1:
                 with con:
                     con.execute(query[0], [sl.Binary(query[1].read())])
             else:
                 with con:
                     con.execute(query[0])
+        # print("----------------")
         self.querys.clear()
         # Получение родительского окна (диалогового окна) метки
         dialog = self.label.window()
@@ -162,6 +181,7 @@ class Change_window(object):
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     Dialog = QtWidgets.QDialog()
     ui = Change_window()
