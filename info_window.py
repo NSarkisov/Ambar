@@ -70,11 +70,12 @@ class Change_window(object):
         self.pushButton_4.clicked.connect(partial(self.apply))
 
     def show_info(self, image):
-        image_bytes = image.read()
-        picture = QImage.fromData(image_bytes)
-        picture = picture.scaled(400, 300, Qt.KeepAspectRatio)
-        self.label.setPixmap(QPixmap.fromImage(picture))
-        self.label.setScaledContents(True)
+        if image is not None:
+            image_bytes = image.read()
+            picture = QImage.fromData(image_bytes)
+            picture = picture.scaled(400, 300, Qt.KeepAspectRatio)
+            self.label.setPixmap(QPixmap.fromImage(picture))
+            self.label.setScaledContents(True)
         self.label.setStyleSheet("border: 1px solid black;")
 
     def open_file_explorer(self, table_name, id_image):
@@ -90,12 +91,17 @@ class Change_window(object):
             with open(file, 'rb') as file:
                 image_data = file.read()
             image = QtGui.QImage.fromData(image_data)
+            Change_window.image = image
             pixmap = QPixmap(image)
             self.label.setPixmap(pixmap.scaled(400, 300, Qt.AspectRatioMode.KeepAspectRatio))
-            self.querys.append(
+            if id_image == None:
+                QMessageBox.information(file_dialog, 'Внимание!', 'Изображение успешно добавлено.')
+                self.label.window().close()
+            else:
+                self.querys.append(
                 [f'UPDATE OR IGNORE {table_name} SET картинка = ? WHERE id = {id_image}', BytesIO(image_data)])
-            self.pushButton_3.setEnabled(True)
-            self.pushButton_4.setEnabled(True)
+                self.pushButton_3.setEnabled(True)
+                self.pushButton_4.setEnabled(True)
 
     def delete(self, table_name, id_image, operation):
 

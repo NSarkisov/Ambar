@@ -1,6 +1,6 @@
 from info_window import Change_window
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QByteArray, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox, QHeaderView, QVBoxLayout, QLabel, QComboBox, QTableWidgetItem
 from functools import partial
 import sqlite3 as sl
@@ -17,9 +17,10 @@ class Ui_Dialog(object):
     table_name = ""
     column_names = ""
     querys = []
-
+    
+    
     def setupUi(self, Dialog):
-
+        print(self.table_name)
         Dialog.setObjectName("Dialog")
         Dialog.resize(774, 559)
 
@@ -100,14 +101,17 @@ class Ui_Dialog(object):
                 column = ', '.join(column_names)
                 inf = [list(x) for x in inf]
             elif table_name == 'Заказы':
-                column_names = ['Номер заказа', 'Клиенты', 'Товары', 'Количество', 'Дата заказа']
+                column_names = ['Номер заказа', 'Клиенты', 'Дата заказа']
                 inf = con.execute(
-                    f'SELECT Заказы.id, Клиенты.имя_клиента, Товары.имя_товара, Заказы.количество, '
-                    f'Заказы.дата_заказа FROM "Заказы" JOIN "Клиенты" ON Заказы.id_клиента = Клиенты.id '
-                    f'JOIN "Товары" ON Заказы.id_товара = Товары.id').fetchall()
+                    f'SELECT Заказы.id, Клиенты.имя_клиента, '
+                    f'Заказы.дата_заказа FROM "Заказы" JOIN "Клиенты" ON Заказы.id_клиента = Клиенты.id ').fetchall()
                 print(inf)
                 inf = [list(x) for x in inf]
                 column = ', '.join(column_names)
+            elif table_name == 'Добавление заказа':
+                column_names = ['Клиенты', 'Товар', 'Количество', 'Дата заказа']
+                column = ', '.join(column_names)
+                inf = []
             else:
                 header = con.execute(f'PRAGMA table_info({table_name})').fetchall()
                 column_names = [column[1] for column in header]
@@ -116,7 +120,8 @@ class Ui_Dialog(object):
                 inf = [list(x) for x in inf]
                 if table_name == 'Товары':
                     for i in inf:
-                        i[4] = BytesIO(i[4])
+                        if i[4] != "":
+                            i[4] = BytesIO(i[4])
         table = [column_names] + inf
         self.column_names = column
         self.tableWidget.setRowCount(len(table))
@@ -141,6 +146,8 @@ class Ui_Dialog(object):
 
         if table_name == "Заказы":
             self.tableWidget.setColumnHidden(0, False)
+        elif table_name == 'Добавление заказа':
+            self.tableWidget.setColumnHidden(0, False)
         elif table_name == "Товар_на_складе":
             self.tableWidget.setColumnHidden(0, True)
             self.tableWidget.setColumnHidden(1, True)
@@ -157,13 +164,32 @@ class Ui_Dialog(object):
         # Handle_cell_clicked, который вызывается при клике на ячейку таблицы. Обработчик получает индексы нажатой
         # ячейки и затем использует метод setSelected(True) для каждой ячейки в столбце, чтобы выделить весь столбец.
         # Растягивание всех столбцов
+        
         self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tableWidget.horizontalHeader().setVisible(False)
         self.vertical_header_labels = [str(i) for i in range(self.tableWidget.rowCount())]
         self.tableWidget.setVerticalHeaderLabels(self.vertical_header_labels)
         empty_box = QTableWidgetItem('')
         self.tableWidget.setVerticalHeaderItem(0, empty_box)
-        self.tableWidget.cellClicked.connect(partial(self.handle_cell_clicked, table_name, info_dict))
+        self.tableWidget.cellClicked.connect(partial(self.handle_cell_clicked, table_name))
+    #     self.set_first_row_disabled()
+
+    # def set_first_row_disabled(self):
+    #     for column in range(self.tableWidget.columnCount()):
+    #         item = self.tableWidget.item(0, column)
+    #         if item is None:
+    #             item = QTableWidgetItem()
+    #             self.tableWidget.setItem(0, column, item)
+    #         item.setFlags(item.flags() & ~Qt.ItemIsEnabled)  # Удаление флага Qt.ItemIsEnabled
+    #     font = self.tableWidget.font()
+    #     font.setBold(True)  # Установка жирного шрифта
+
+    #     for column in range(self.tableWidget.columnCount()):
+    #         item = self.tableWidget.item(0, column)
+    #         if item is None:
+    #             item = QTableWidgetItem()
+    #             self.tableWidget.setItem(0, column, item)
+    #         item.setFont(font)  # Установка шрифта для ячейки
 
     def vertical_header(self):
         table = self.tableWidget
@@ -182,22 +208,41 @@ class Ui_Dialog(object):
                 if row != 0:
                     self.tableWidget.hideRow(row)
 
-    def handle_cell_clicked(self, table_name, info_dict, row, column):
+    def handle_cell_clicked(self, table_name, row, column):
         if column == 4 and row != 0 and table_name != "Товар_на_складе":
             Dialog = QtWidgets.QDialog()
             change_window = Change_window()
-            for el in info_dict:
-                if row == el:
-                    id = info_dict[el][0]
-                    name_cell = info_dict[el][1]
+            
+            table = self.tableWidget
+
+            if table.item(row, column) is not None and table.item(row, column).text() == "Картинка":
+                id = table.item(row, 0).data(Qt.DisplayRole)
+                name_cell = table.item(row, 1).data(Qt.DisplayRole)
+                with con:
                     image = con.execute(f'SELECT "картинка" FROM {table_name} WHERE id = {id}').fetchall()[0][0]
-            change_window.image = BytesIO(image)
-            change_window.name = name_cell
+                change_window.image = BytesIO(image)
+                change_window.id_image = id
+                change_window.name = name_cell
+            elif table.item(row, column) is not None and table.item(row, column).text() != "Картинка":   
+                change_window.image = None
+                change_window.id_image = table.item(row, 0).data(Qt.DisplayRole)
+                change_window.name = table.item(row, 1).data(Qt.DisplayRole)
+            else:
+                change_window.image = None
+                change_window.id_image = None
+                change_window.name = "Добавление изображения"
+
             change_window.table_name = table_name
-            change_window.id_image = id
             change_window.setupChange(Dialog)
             Dialog.show()
             Dialog.exec_()
+            image = Change_window.image
+            print(f'это image = {image}')
+            image = QByteArray(image)
+            table.setItem(row, column, image)
+            self.pushButton_3.setEnabled(True)
+            self.pushButton_4.setEnabled(True)
+            
         if row == 0:
             for row in range(self.tableWidget.rowCount()):
                 item = self.tableWidget.item(row, column)
@@ -205,11 +250,12 @@ class Ui_Dialog(object):
                     item.setSelected(True)
 
     def plus(self, table_name):
-        if table_name == 'Заказы':
+        if table_name == 'Добавление заказа':
+            #Новое диалоговое окно с комбобоксами выбор товара
             self.Dialog_add_order = QtWidgets.QDialog()
             self.Dialog_add_order.setObjectName("Dialog_add_order")
             self.Dialog_add_order.resize(450, 350)
-            self.Dialog_add_order.setWindowTitle("Добавление заказа")
+            self.Dialog_add_order.setWindowTitle("Добавление товара")
             self.label = QtWidgets.QLabel(self.Dialog_add_order)
             self.label.setGeometry(QtCore.QRect(20, 80, 100, 16))
             self.label.setObjectName("label")
@@ -258,14 +304,14 @@ class Ui_Dialog(object):
             with con:
                 goods = con.execute(f'SELECT имя_товара FROM Товары').fetchall()
                 customers = con.execute(f'SELECT имя_клиента FROM Клиенты').fetchall()
-
                 for good in goods:
                     self.comboBox.addItem(good[0])
                 for customer in customers:
                     self.comboBox_1.addItem(customer[0])
-                column_names = con.execute(f'PRAGMA table_info({table_name})').fetchall()
-                column = [column[1] for column in column_names]
-            self.pushButton_6.clicked.connect(partial(self.add_in_table, self.table_name, column))
+                    
+            #     column_names = con.execute(f'PRAGMA table_info({table_name})').fetchall()
+            #     column = [column[1] for column in column_names]
+            self.pushButton_6.clicked.connect(partial(self.add_in_table))
             self.pushButton_7.clicked.connect(partial(self.close))
             self.Dialog_add_order.exec_()
         else:
@@ -292,34 +338,36 @@ class Ui_Dialog(object):
                                           f'списано FROM "Товар_на_складе" INNER JOIN Товары ON '
                                           f'Товар_на_складе.id_товара = Товары.id'
                                           f' WHERE Товары.имя_товара = "{selected_good}"').fetchall()
+                available_products = 0
                 for el in info_amount:
                     amount = el[0]
                     sold = el[1]
                     moved = el[2]
                     written_off = el[3]
-                available = amount - sold - moved - written_off
-                self.textEdit.setPlainText(str(available))
+                    available = amount - sold - moved - written_off
+                    if available > 0 :
+                        available_products += available
+                self.textEdit.setPlainText(str(available_products))
         else:
             self.textEdit.clear()
 
-    def add_in_table(self, table_name, column):
-        column = [i for i in column if
-                  i != 'id']  # названия столбцов, кот необх добавить в запрос для внесения изменений в бд
-        column = ', '.join(column)
-        print(column)
+    def add_in_table(self):
+       
         name = self.comboBox_1.currentText()
         good = self.comboBox.currentText()
         amount = self.textEdit_1.toPlainText()
         date = self.dateEdit.date().toString('yyyy-MM-dd')
-
-        with con:
-            con.execute(f'INSERT INTO {table_name} ({column}) '
-                        f'VALUES ((SELECT id FROM Клиенты WHERE имя_клиента = "{name}"), '
-                        f'(SELECT id FROM Товары WHERE имя_товара = "{good}"), {amount}, "{date}")')
-            # !!!!!Нужно добавить логику обработки столбца продано в табл Товары_на_складе
-        print(table_name)
-        self.show_table(table_name)
-        self.close()
+        if self.textEdit_1.toPlainText() >= self.textEdit.toPlainText():
+            QMessageBox.information(self.Dialog_add_order, 'Внимание!', 'Пожалуйста, введите доступное количество товара.')
+        else:
+            row = self.tableWidget.rowCount()
+            self.tableWidget.insertRow(row)
+            self.tableWidget.setItem(row, 0,  QTableWidgetItem(name))
+            self.tableWidget.setItem(row, 1, QTableWidgetItem(good))
+            self.tableWidget.setItem(row, 2, QTableWidgetItem(amount))
+            self.tableWidget.setItem(row, 3, QTableWidgetItem(date))    
+            self.Dialog_add_order.window().close()   
+            self.vertical_header()
 
     def close(self):
         self.Dialog_add_order.close()
@@ -377,41 +425,50 @@ class Ui_Dialog(object):
             QMessageBox.information(table, 'Внимание!', 'Пожалуйста, выделите строку.')
 
     def add(self, table_name, column_names):
-        table = self.tableWidget
-        selected_model = table.selectionModel()
-        selected_line = selected_model.selectedRows()
-        if selected_line:
-            data = self.is_data(table)
-            for sublist in data:
-                # repr() возвращает строковое представление объекта, включая кавычки, если это строка, чтоб ? в
-                # запросе передавался в ""
-                if table_name == "Товар_на_складе":
-                    with con:
-                        storage_index = con.execute(f"SELECT id FROM Склады "
-                                                    f"WHERE название = '{sublist[1]}'").fetchall()[0][0]
-                        sublist[2] = self.cell_combobox.currentText()
-                        product_index = con.execute(f"SELECT id FROM Товары "
-                                                    f"WHERE имя_товара = '{sublist[2]}'").fetchall()[0][0]
-                        sublist[1] = storage_index
-                        sublist[2] = product_index
-                        header = con.execute(f'PRAGMA table_info({table_name})').fetchall()
-                        column_names = [column[1] for column in header]
-                        column = ', '.join(column_names[1:-1])
-                    for i in range(len(sublist)):
-                        if isinstance(sublist[i], str) and sublist[i].isdigit():
-                            sublist[i] = int(sublist[i])
-                else:
-                    column_names = column_names.split(',')
-                    column = [i for i in column_names if
-                              i != 'id']  # названия столбцов, кот необх добавить в запрос для внесения изменений в бд
-                    column = ', '.join(column)
-                val = ', '.join(repr(item) for item in sublist[1:])
-                self.querys.append(f'INSERT INTO {table_name} ({column}) VALUES ({val})')
-            self.pushButton_3.setEnabled(True)
-            self.pushButton_4.setEnabled(True)
+        if table_name == 'Заказы':
+            #Открываем диалоговое окно в виде таблицы с добавлением товаров в заказ
+            Dialog = QtWidgets.QDialog()
+            self.table_name = "Добавление заказа"
+            self.setupUi(Dialog)
+            #order_quantity = 
+            Dialog.exec_()
+             
         else:
-            # Если нет выделенных диапазонов, выводим сообщение пользователю
-            QMessageBox.information(table, 'Внимание!', 'Пожалуйста, выделите строку.')
+            table = self.tableWidget
+            selected_model = table.selectionModel()
+            selected_line = selected_model.selectedRows()
+            if selected_line:
+                data = self.is_data(table)
+                for sublist in data:
+                    # repr() возвращает строковое представление объекта, включая кавычки, если это строка, чтоб ? в
+                    # запросе передавался в ""
+                    if table_name == "Товар_на_складе":
+                        with con:
+                            storage_index = con.execute(f"SELECT id FROM Склады "
+                                                        f"WHERE название = '{sublist[1]}'").fetchall()[0][0]
+                            sublist[2] = self.cell_combobox.currentText()
+                            product_index = con.execute(f"SELECT id FROM Товары "
+                                                        f"WHERE имя_товара = '{sublist[2]}'").fetchall()[0][0]
+                            sublist[1] = storage_index
+                            sublist[2] = product_index
+                            header = con.execute(f'PRAGMA table_info({table_name})').fetchall()
+                            column_names = [column[1] for column in header]
+                            column = ', '.join(column_names[1:-1])
+                        for i in range(len(sublist)):
+                            if isinstance(sublist[i], str) and sublist[i].isdigit():
+                                sublist[i] = int(sublist[i])
+                    else:
+                        column_names = column_names.split(',')
+                        column = [i for i in column_names if
+                                i != 'id']  # названия столбцов, кот необх добавить в запрос для внесения изменений в бд
+                        column = ', '.join(column)
+                    val = ', '.join(repr(item) for item in sublist[1:])
+                    self.querys.append(f'INSERT INTO {table_name} ({column}) VALUES ({val})')
+                self.pushButton_3.setEnabled(True)
+                self.pushButton_4.setEnabled(True)
+            else:
+                # Если нет выделенных диапазонов, выводим сообщение пользователю
+                QMessageBox.information(table, 'Внимание!', 'Пожалуйста, выделите строку.')
 
     def delete(self, table_name):
         table = self.tableWidget
@@ -433,7 +490,8 @@ class Ui_Dialog(object):
         else:
             QMessageBox.information(table, 'Внимание!', 'Пожалуйста, выделите строку.')
         for row in sorted(selected_rows, reverse=True):
-            table.removeRow(row)
+            if row != 0:
+                table.removeRow(row)
         self.vertical_header()
 
     def apply(self):
