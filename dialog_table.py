@@ -433,28 +433,7 @@ class Ui_Dialog(object):
             self.table_name = "Добавление заказа"
             self.setupUi(Dialog)
             Dialog.exec_()
-        if table_name == "Добавление заказа":
-            table = self.tableWidget
-            selected_model = table.selectionModel()
-            selected_line = selected_model.selectedRows()
-            data = self.is_data(table)      #[['1', 'Иванов Иван Иванович', 'Вилка столовая ', '10', '2000-01-01']]
-            with con:
-                header = con.execute(f'PRAGMA table_info(Заказы)').fetchall()  
-                column_names = [column[1] for column in header[1:]]
-                column = ', '.join(column_names)
-                print(column)
-            inf = []
-            for el in data:
-                inf.append(el[0])
-                inf.append(el[4])
-                self.querys.append([f'INSERT INTO Заказы ({column}) VALUES (?,?)', inf])
-            self.cancel_button.setEnabled(True)
-            self.apply_button.setEnabled(True)    
-            for inf in data:
-                amount_good = inf[2]
-                print(amount_good)
-    
-           
+                   
         else:
             table = self.tableWidget
             selected_model = table.selectionModel()
@@ -462,6 +441,7 @@ class Ui_Dialog(object):
             if selected_line:
                 data = self.is_data(table)
                 print(data)
+                inf = []
                 for sublist in data:
                     # repr() возвращает строковое представление объекта, включая кавычки, если это строка, чтоб ? в
                     # запросе передавался в ""
@@ -491,6 +471,24 @@ class Ui_Dialog(object):
                         sublist[4] = sl.Binary(sublist[4].read())
                         data_count = "?," * (len(sublist[1:]) - 1) + "?"
                         self.querys.append([f'INSERT INTO {table_name} ({column}) VALUES ({data_count})', sublist[1:]])
+                    if table_name == "Добавление заказа":
+                        with con:
+                            
+                            id_good = con.execute(f'SELECT id FROM Товары WHERE имя_товара = "{sublist[2]}"').fetchall()[0][0]
+                            header = con.execute(f'PRAGMA table_info(Заказы)').fetchall()  
+                            column_names = [column[1] for column in header[1:]]
+                            column = ', '.join(column_names)
+                            print(column)
+                        inf.append(sublist[0])
+                        inf.append(sublist[4])
+                        con.execute(f'INSERT INTO Заказы ({column}) VALUES (?,?)', inf)
+                        order_id = con.execute(f'SELECT last_insert_rowid() FROM Заказы').fetchone()[0]
+                        print(order_id)
+                        self.querys.append(f'INSERT INTO Состав_заказа (id_заказа, id_товара, количество_товара) VALUES ({order_id}, {id_good}, {sublist[3]})')
+                        # for sublist in data:
+                        #     amount_good = sublist[2]
+                        #     print(amount_good)
+                    
                     else:
                         val = ', '.join(repr(item) for item in sublist[1:])
                         self.querys.append(f'INSERT INTO {table_name} ({column}) VALUES ({val})')
@@ -531,6 +529,7 @@ class Ui_Dialog(object):
                     con.execute(query[0], query[1])
                 else:
                     con.execute(query)
+       
         self.querys.clear()  # очищаю список запросов на удаление после нажатия кнопки применить
         self.apply_button.setEnabled(False)
         table = self.tableWidget
