@@ -413,7 +413,9 @@ class Ui_Dialog(object):
         selected_line = selected_model.selectedRows()
         if selected_line:
             data = self.is_data(table)
-            column = column_names
+            column_names = column_names.split(',')
+            column = [i for i in column_names if i != 'id']
+            column = ', '.join(column)
             for sublist in data:
                 # repr() возвращает строковое представление объекта, включая кавычки, если это строка, чтоб ? в
                 # запросе передавался в ""
@@ -474,11 +476,11 @@ class Ui_Dialog(object):
                         for i in range(len(sublist)):
                             if isinstance(sublist[i], str) and sublist[i].isdigit():
                                 sublist[i] = int(sublist[i])
-                    #else:
-                        # column_names = column_names.split(',')
-                        # column = [i for i in column_names if i != 'id']
-                        # # названия столбцов, кот необх добавить в запрос для внесения изменений в бд
-                        # column = ', '.join(column)
+                    # else:
+                    #     column_names = column_names.split(',')
+                    #     column = [i for i in column_names if i != 'id']
+                    #     # названия столбцов, кот необх добавить в запрос для внесения изменений в бд
+                    #     column = ', '.join(column)
 
                     if table_name == "Товары":
                         sublist[4].seek(0)
@@ -511,7 +513,9 @@ class Ui_Dialog(object):
                     
                     else:
                         column_names = column_names.split(',')
-                        column = [i for i in column_names if i != 'id']
+                        print(column_names)
+                        column = [i for i in column_names[1:]]   #if i != 'id'
+                        print(column)
                         # названия столбцов, кот необх добавить в запрос для внесения изменений в бд
                         column = ', '.join(column)
                         val = ', '.join(repr(item) for item in sublist[1:])
