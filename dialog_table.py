@@ -72,6 +72,29 @@ class Ui_Dialog(object):
                 storages = con.execute("SELECT название FROM Склады").fetchall()
                 for storage in storages:
                     self.comboBox.addItem(storage[0])
+                    
+        if self.table_name == "Добавление заказа":
+            self.tableWidget.setGeometry(QtCore.QRect(30, 100, 711, 361))
+            self.delete_button.setGeometry(QtCore.QRect(610, 20, 131, 28))
+            self.add_button.setGeometry(QtCore.QRect(475, 20, 131, 28))
+            self.change_button.setGeometry(QtCore.QRect(300, 470, 131, 28))  # Изменить
+            self.plus_button.setGeometry(QtCore.QRect(20, 20, 40, 28))
+            self.cancel_button.setEnabled(True)
+            self.comboBox_1 = QtWidgets.QComboBox(Dialog)
+            self.comboBox_1.setGeometry(QtCore.QRect(65, 20, 200, 28))
+            self.comboBox_1.setObjectName("comboBox")
+            self.dateEdit = QtWidgets.QDateEdit(Dialog)
+            self.dateEdit.setGeometry(QtCore.QRect(270, 20, 200, 28))
+            self.dateEdit.setObjectName("dateEdit")
+            self.order_button = QtWidgets.QPushButton(Dialog)
+            self.order_button.setGeometry(QtCore.QRect(100, 60, 300, 28))
+            self.order_button.setObjectName("pushButton8")
+            self.order_button.setText(QtCore.QCoreApplication.translate("Dialog", "Добавить номер заказа"))
+            self.order_button.clicked.connect(partial(self.add_order))
+            with con:
+                customers = con.execute(f'SELECT id, имя_клиента FROM Клиенты').fetchall()
+                for customer in customers:
+                    self.comboBox_1.addItem(f'{customer[0]}. {customer[1]}')
 
         self.show_table(self.table_name)
         self.retranslateUi(Dialog)
@@ -86,7 +109,8 @@ class Ui_Dialog(object):
         self.add_button.setText(_translate("Dialog", "Добавить"))
         self.cancel_button.setText(_translate("Dialog", "Отменить"))
         self.apply_button.setText(_translate("Dialog", "Применить"))
-
+       
+        
         self.plus_button.clicked.connect(partial(self.plus, self.table_name))
         self.change_button.clicked.connect(partial(self.change, self.table_name, self.column_names))
         self.delete_button.clicked.connect(partial(self.delete, self.table_name))
@@ -116,7 +140,7 @@ class Ui_Dialog(object):
                 inf = [list(x) for x in inf]
                 column = ', '.join(column_names)
             elif table_name == 'Добавление заказа':
-                column_names = ['id','Клиенты', 'Товар', 'Количество', 'Дата заказа']
+                column_names = ['id', 'Товар', 'Количество']
                 column = ', '.join(column_names)
                 inf = []
             else:
@@ -245,12 +269,26 @@ class Ui_Dialog(object):
                 if item:
                     item.setSelected(True)
 
+    def add_order(self):
+        inf = []
+        id_user = self.comboBox_1.currentText()[0]
+        date = self.dateEdit.date().toString('yyyy-MM-dd')
+        inf.append(id_user)
+        inf.append(date)
+        with con:
+            header = con.execute(f'PRAGMA table_info(Заказы)').fetchall()  
+            column_names = [column[1] for column in header[1:]]
+            column = ', '.join(column_names)
+            print(column)
+            con.execute(f'INSERT INTO Заказы ({column}) VALUES (?,?)', inf)
+            
     def plus(self, table_name):
         if table_name == 'Добавление заказа':
+            
             self.Dialog_add_order = QtWidgets.QDialog()
             self.Dialog_add_order.setObjectName("Dialog_add_order")
             self.Dialog_add_order.resize(450, 350)
-            self.Dialog_add_order.setWindowTitle("Добавление заказа")
+            self.Dialog_add_order.setWindowTitle("Добавление товара")
             self.label = QtWidgets.QLabel(self.Dialog_add_order)
             self.label.setGeometry(QtCore.QRect(20, 80, 100, 16))
             self.label.setObjectName("label")
@@ -259,27 +297,13 @@ class Ui_Dialog(object):
             self.label_1.setGeometry(QtCore.QRect(20, 120, 120, 28))
             self.label_1.setObjectName("label_1")
             self.label_1.setText("Количество")
-            self.label_2 = QtWidgets.QLabel(self.Dialog_add_order)
-            self.label_2.setGeometry(QtCore.QRect(20, 40, 120, 28))
-            self.label_2.setObjectName("label_2")
-            self.label_2.setText("Имя клиента")
             self.label_3 = QtWidgets.QLabel(self.Dialog_add_order)
             self.label_3.setGeometry(QtCore.QRect(20, 160, 120, 28))
             self.label_3.setObjectName("label_3")
             self.label_3.setText("Доступно")
-            self.label_4 = QtWidgets.QLabel(self.Dialog_add_order)
-            self.label_4.setGeometry(QtCore.QRect(20, 200, 120, 28))
-            self.label_4.setObjectName("label_4")
-            self.label_4.setText("Дата")
-            self.dateEdit = QtWidgets.QDateEdit(self.Dialog_add_order)
-            self.dateEdit.setGeometry(QtCore.QRect(130, 200, 255, 28))
-            self.dateEdit.setObjectName("dateEdit")
             self.comboBox = QtWidgets.QComboBox(self.Dialog_add_order)
             self.comboBox.setGeometry(QtCore.QRect(130, 80, 255, 28))
             self.comboBox.setObjectName("comboBox")
-            self.comboBox_1 = QtWidgets.QComboBox(self.Dialog_add_order)
-            self.comboBox_1.setGeometry(QtCore.QRect(130, 40, 255, 28))
-            self.comboBox_1.setObjectName("comboBox_1")
             self.textEdit = QtWidgets.QTextEdit(self.Dialog_add_order)
             self.textEdit.setGeometry(QtCore.QRect(130, 160, 255, 28))
             self.textEdit.setObjectName("textEdit")
@@ -297,15 +321,8 @@ class Ui_Dialog(object):
             self.comboBox.currentIndexChanged.connect(self.updateAmount)
             with con:
                 goods = con.execute(f'SELECT имя_товара FROM Товары').fetchall()
-                customers = con.execute(f'SELECT id, имя_клиента FROM Клиенты').fetchall()
-
                 for good in goods:
                     self.comboBox.addItem(good[0])
-                for customer in customers:
-                    self.comboBox_1.addItem(f'{customer[0]}. {customer[1]}')
-                    
-                # column_names = con.execute(f'PRAGMA table_info({table_name})').fetchall()
-                # column = [column[1] for column in column_names]
             self.pushButton_6.clicked.connect(partial(self.add_in_table))
             self.pushButton_7.clicked.connect(partial(self.close))
             self.Dialog_add_order.exec_()
@@ -349,22 +366,18 @@ class Ui_Dialog(object):
             self.textEdit.clear()
 
     def add_in_table(self):
-        id_user = self.comboBox_1.currentText()[0]
-        name = self.comboBox_1.currentText()[3:]   #1. Иванов
+        # id_user = self.comboBox_1.currentText()[0]
+        # name = self.comboBox_1.currentText()[3:]   #1. Иванов
         good = self.comboBox.currentText()
         amount = self.textEdit_1.toPlainText()
-        date = self.dateEdit.date().toString('yyyy-MM-dd')
         if int(self.textEdit_1.toPlainText()) > int(self.textEdit.toPlainText()):
             QMessageBox.information(self.Dialog_add_order, 'Внимание!',
                                     'Пожалуйста, введите доступное количество товара.')
         else:
             row = self.tableWidget.rowCount()
             self.tableWidget.insertRow(row)
-            self.tableWidget.setItem(row, 0, QTableWidgetItem(id_user))
-            self.tableWidget.setItem(row, 1, QTableWidgetItem(name))
-            self.tableWidget.setItem(row, 2, QTableWidgetItem(good))
-            self.tableWidget.setItem(row, 3, QTableWidgetItem(amount))
-            self.tableWidget.setItem(row, 4, QTableWidgetItem(date))
+            self.tableWidget.setItem(row, 1, QTableWidgetItem(good))
+            self.tableWidget.setItem(row, 2, QTableWidgetItem(amount))
             self.Dialog_add_order.window().close()
             self.vertical_header()
 
@@ -427,13 +440,14 @@ class Ui_Dialog(object):
             QMessageBox.information(table, 'Внимание!', 'Пожалуйста, выделите строку.')
 
     def add(self, table_name, column_names):
+        #self.order_dict = {'order': {}} 
         if table_name == 'Заказы':
             # Открываем диалоговое окно в виде таблицы с добавлением товаров в заказ
             Dialog = QtWidgets.QDialog()
             self.table_name = "Добавление заказа"
             self.setupUi(Dialog)
             Dialog.exec_()
-                   
+                 
         else:
             table = self.tableWidget
             selected_model = table.selectionModel()
@@ -441,7 +455,7 @@ class Ui_Dialog(object):
             if selected_line:
                 data = self.is_data(table)
                 print(data)
-                inf = []
+                
                 for sublist in data:
                     # repr() возвращает строковое представление объекта, включая кавычки, если это строка, чтоб ? в
                     # запросе передавался в ""
@@ -460,11 +474,11 @@ class Ui_Dialog(object):
                         for i in range(len(sublist)):
                             if isinstance(sublist[i], str) and sublist[i].isdigit():
                                 sublist[i] = int(sublist[i])
-                    else:
-                        column_names = column_names.split(',')
-                        column = [i for i in column_names if i != 'id']
-                        # названия столбцов, кот необх добавить в запрос для внесения изменений в бд
-                        column = ', '.join(column)
+                    #else:
+                        # column_names = column_names.split(',')
+                        # column = [i for i in column_names if i != 'id']
+                        # # названия столбцов, кот необх добавить в запрос для внесения изменений в бд
+                        # column = ', '.join(column)
 
                     if table_name == "Товары":
                         sublist[4].seek(0)
@@ -472,24 +486,34 @@ class Ui_Dialog(object):
                         data_count = "?," * (len(sublist[1:]) - 1) + "?"
                         self.querys.append([f'INSERT INTO {table_name} ({column}) VALUES ({data_count})', sublist[1:]])
                     if table_name == "Добавление заказа":
+                        #data = [['', 'Вилка столовая ', '10'], ['', 'Коробка картонная', '1']]        
                         with con:
-                            
-                            id_good = con.execute(f'SELECT id FROM Товары WHERE имя_товара = "{sublist[2]}"').fetchall()[0][0]
-                            header = con.execute(f'PRAGMA table_info(Заказы)').fetchall()  
-                            column_names = [column[1] for column in header[1:]]
-                            column = ', '.join(column_names)
-                            print(column)
-                        inf.append(sublist[0])
-                        inf.append(sublist[4])
-                        con.execute(f'INSERT INTO Заказы ({column}) VALUES (?,?)', inf)
-                        order_id = con.execute(f'SELECT last_insert_rowid() FROM Заказы').fetchone()[0]
-                        print(order_id)
-                        self.querys.append(f'INSERT INTO Состав_заказа (id_заказа, id_товара, количество_товара) VALUES ({order_id}, {id_good}, {sublist[3]})')
+                            id_good = con.execute(f'SELECT id FROM Товары WHERE имя_товара = "{sublist[1]}"').fetchall()[0][0]
+                            order_id = con.execute(f'SELECT last_insert_rowid() FROM Заказы').fetchone()[0]
+                            QMessageBox.information(table, "Успех", "Товар успешно добавлен к заказу.")
+                            print(order_id)
+                            self.querys.append(f'INSERT INTO Состав_заказа (id_заказа, id_товара, количество_товара) VALUES ({order_id}, {id_good}, {sublist[2]})')
+                    #     if 'id_customer' not in self.order_dict['order']:
+                    #         self.order_dict['order']['id_customer'] = sublist[0]
+                    #     if 'name' not in self.order_dict['order']:
+                    #         self.order_dict['order']['name'] = sublist[1]
+                    #     if 'date' not in self.order_dict['order']:
+                    #         self.order_dict['order']['date'] = sublist[4]
+                    #     if 'goods' not in self.order_dict['order']:
+                    #         self.order_dict['order']['goods'] = [{sublist[2] : sublist[3]}]
+                    #     else:
+                    #         self.order_dict['order']['goods'] += [{sublist[2] : sublist[3]}]
+                    #     print(self.order_dict)
+                    #     QMessageBox.information(table, "Успех", "Заказ успешно добавлен в базу данных.")
                         # for sublist in data:
                         #     amount_good = sublist[2]
                         #     print(amount_good)
                     
                     else:
+                        column_names = column_names.split(',')
+                        column = [i for i in column_names if i != 'id']
+                        # названия столбцов, кот необх добавить в запрос для внесения изменений в бд
+                        column = ', '.join(column)
                         val = ', '.join(repr(item) for item in sublist[1:])
                         self.querys.append(f'INSERT INTO {table_name} ({column}) VALUES ({val})')
                 self.cancel_button.setEnabled(True)
@@ -531,6 +555,9 @@ class Ui_Dialog(object):
                     con.execute(query)
        
         self.querys.clear()  # очищаю список запросов на удаление после нажатия кнопки применить
+        if table_name == 'Добавление заказа':
+            self.tableWidget.window().close()
+        self.show_table('Заказы')
         self.apply_button.setEnabled(False)
         table = self.tableWidget
         selected_model = table.selectionModel()
@@ -543,7 +570,33 @@ class Ui_Dialog(object):
                     table.removeCellWidget(line.row(), column)
                     new_item = QTableWidgetItem(current_text)
                     table.setItem(line.row(), column, new_item)
-        self.tableWidget.clear()
+        #self.tableWidget.clear()
+        
+        #     self.tableWidget.window().close()  
+        #     inf = []    
+        #     #{'order': {'id_customer': '1', 'name': 'Иванов Иван Иванович', 'date': '2000-01-01', 
+        #     # 'goods': [{'Вилка столовая ': '10'}, {'Коробка картонная': '10'}]}}
+           
+        #     date_order = self.order_dict['order']['date'] 
+        #     id_customer = self.order_dict['order']['id_customer']
+        #     inf.append(id_customer)
+        #     inf.append(date_order)
+        #     with con:
+        #         header = con.execute(f'PRAGMA table_info(Заказы)').fetchall()  
+        #         column_names = [column[1] for column in header[1:]]
+        #         column = ', '.join(column_names)
+        #         print(column)
+        #         con.execute(f'INSERT INTO Заказы ({column}) VALUES (?,?)', inf) 
+        #         order_id = con.execute(f'SELECT last_insert_rowid() FROM Заказы').fetchone()[0]
+        #     for el in self.order_dict['order']['goods']:
+        #         for good in el:
+        #             name = good
+        #             count = el[good]
+        #             id_good = con.execute(f'SELECT id FROM Товары WHERE имя_товара = "{name}"').fetchall()[0][0] 
+        #             self.querys.append(f'INSERT INTO Состав_заказа (id_заказа, id_товара, количество_товара) VALUES ({order_id}, {id_good}, {count})')
+        #     self.tableWidget.window().close()
+        #     self.show_table('Заказы')
+        #     self.apply_button.setEnabled(True)
         self.show_table(table_name)
 
     def cancel(self):
@@ -552,6 +605,12 @@ class Ui_Dialog(object):
         dialog.close()
         self.cancel_button.setEnabled(False)
         self.apply_button.setEnabled(False)
+
+# При нажатии на заказы верно записывается номер заказа, состав заказа в БД, но Доработать проверки 
+# по заказам в таблице "Добавление заказа", если например не нажата кнопка "Добавить номер заказа" выводилось предупреждение
+# о нажатии на кнопку, добавить вывод заказов на просмотр, добавить функционал перемещения, продано, списания товара в таблице
+# "Товар_на_складе" (Приложение умеет автоматически создавать документы типа word + excel для следующих операций
+#Продажа, Приемка товара, Перемещение, Списание товара)
 
 
 if __name__ == "__main__":
